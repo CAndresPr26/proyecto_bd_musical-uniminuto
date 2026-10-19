@@ -400,3 +400,57 @@ select 'stream', count(*) from stream;
 -- prueba del trigger: debe generar un error, por eso queda comentada
 -- insert into descarga (id_registrado, id_cancion, fecha, n_veces)
 -- values (1, 2, '2026-10-19', 0);
+
+-- ============================================
+-- PRUEBAS DML: UPDATE Y DELETE
+-- Se usa una transacción para conservar
+-- los datos originales al finalizar.
+-- ============================================
+
+START TRANSACTION;
+
+-- 1. UPDATE: cambiar temporalmente la fecha
+UPDATE usuario
+SET fecha_alta = '2026-01-16'
+WHERE id_usuario = 1;
+
+-- Verificar el resultado del UPDATE
+SELECT id_usuario, correo, fecha_alta
+FROM usuario
+WHERE id_usuario = 1;
+
+-- 2. DELETE: comprobar el registro antes
+SELECT *
+FROM stream
+WHERE id_usuario = 1
+  AND id_cancion = 2
+  AND fecha = '2016-10-14';
+
+-- Eliminar temporalmente el registro
+DELETE FROM stream
+WHERE id_usuario = 1
+  AND id_cancion = 2
+  AND fecha = '2016-10-14';
+
+-- Verificar que ya no aparece dentro
+-- de la transacción
+SELECT *
+FROM stream
+WHERE id_usuario = 1
+  AND id_cancion = 2
+  AND fecha = '2016-10-14';
+
+-- 3. Revertir ambas operaciones
+ROLLBACK;
+
+-- Comprobar que se restauraron los datos
+SELECT id_usuario, correo, fecha_alta
+FROM usuario
+WHERE id_usuario = 1;
+
+SELECT *
+FROM stream
+WHERE id_usuario = 1
+  AND id_cancion = 2
+  AND fecha = '2016-10-14';
+
