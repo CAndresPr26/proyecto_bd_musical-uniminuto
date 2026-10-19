@@ -2,9 +2,10 @@
 /* proyecto: base de datos musical - semana 8
    Carlos Pineda - Fundamentos de Bases de Datos - UNIMINUTO
 
-   codigo organizado a partir del trabajo realizado en Workbench.
-   ejecutar en una base de prueba vacia.
-   no ejecutar sobre las tablas que ya existen.
+   -- proyecto de base de datos musical
+-- desarrollado en mariadb con mysql workbench
+-- incluye la creacion de tablas, relaciones, datos de prueba,
+-- consultas, subconsultas, vista, indice y trigger.
 */
 
 create database if not exists proyecto_bd_musical
