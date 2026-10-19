@@ -1,59 +1,401 @@
-/* PROYECTO: BASE DE DATOS EN MYSQL — SEMANA 8
-Estudiante: Carlos Pineda | Fundamentos de Bases de Datos | UNIMINUTO
-Archivo organizado para anexar al informe. Ejecutar completo solo en una base nueva de prueba:
-CREATE TABLE falla si las tablas ya existen. UPDATE/DELETE y prueba negativa del trigger están comentados.
+
+/* proyecto: base de datos musical - semana 8
+   Carlos Pineda - Fundamentos de Bases de Datos - UNIMINUTO
+
+   codigo organizado a partir del trabajo realizado en Workbench.
+   ejecutar en una base de prueba vacia.
+   no ejecutar sobre las tablas que ya existen.
 */
-CREATE DATABASE IF NOT EXISTS proyecto_bd_musical CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE proyecto_bd_musical;
 
--- Tablas principales
-CREATE TABLE grupo (id_grupo INT NOT NULL AUTO_INCREMENT, nombre VARCHAR(100) NOT NULL, componente VARCHAR(255), fecha_cre DATE, CONSTRAINT pk_grupo PRIMARY KEY(id_grupo)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE album (id_album INT NOT NULL AUTO_INCREMENT, titulo VARCHAR(150) NOT NULL, fecha_pub DATE, num_canciones INT, CONSTRAINT pk_album PRIMARY KEY(id_album)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE cancion (id_cancion INT NOT NULL AUTO_INCREMENT, titulo VARCHAR(150) NOT NULL, publica DATE, CONSTRAINT pk_cancion PRIMARY KEY(id_cancion)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE usuario (id_usuario INT NOT NULL AUTO_INCREMENT, correo VARCHAR(150) NOT NULL, url VARCHAR(255), fecha_alta DATE, CONSTRAINT pk_usuario PRIMARY KEY(id_usuario), CONSTRAINT uq_usuario_correo UNIQUE(correo)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE registrado (id_registrado INT NOT NULL AUTO_INCREMENT, cuota DECIMAL(10,2), fecha_fin DATE, CONSTRAINT pk_registrado PRIMARY KEY(id_registrado)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+create database if not exists proyecto_bd_musical
+character set utf8mb4
+collate utf8mb4_unicode_ci;
 
--- Tablas dependientes
-CREATE TABLE contiene (id_album INT NOT NULL, id_cancion INT NOT NULL, CONSTRAINT pk_contiene PRIMARY KEY(id_album,id_cancion), CONSTRAINT fk_contiene_album FOREIGN KEY(id_album) REFERENCES album(id_album) ON UPDATE CASCADE ON DELETE CASCADE, CONSTRAINT fk_contiene_cancion FOREIGN KEY(id_cancion) REFERENCES cancion(id_cancion) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE descarga (id_registrado INT NOT NULL, id_cancion INT NOT NULL, fecha DATE NOT NULL, n_veces INT NOT NULL DEFAULT 1, CONSTRAINT pk_descarga PRIMARY KEY(id_registrado,id_cancion,fecha), CONSTRAINT fk_descarga_registrado FOREIGN KEY(id_registrado) REFERENCES registrado(id_registrado) ON UPDATE CASCADE ON DELETE CASCADE, CONSTRAINT fk_descarga_cancion FOREIGN KEY(id_cancion) REFERENCES cancion(id_cancion) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-CREATE TABLE stream (id_usuario INT NOT NULL, id_cancion INT NOT NULL, fecha DATE NOT NULL, CONSTRAINT pk_stream PRIMARY KEY(id_usuario,id_cancion,fecha), CONSTRAINT fk_stream_usuario FOREIGN KEY(id_usuario) REFERENCES usuario(id_usuario) ON UPDATE CASCADE ON DELETE CASCADE, CONSTRAINT fk_stream_cancion FOREIGN KEY(id_cancion) REFERENCES cancion(id_cancion) ON UPDATE CASCADE ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+use proyecto_bd_musical;
 
--- Datos de ejemplo
-INSERT INTO grupo(nombre,componente,fecha_cre) VALUES ('Morat','Juan Pablo, Juan Pablo Isaza, Simón y Martín','2011-01-01'),('Aterciopelados','Andrea Echeverri y Héctor Buitrago','1990-01-01');
-INSERT INTO album(titulo,fecha_pub,num_canciones) VALUES ('Sobre el amor y sus efectos secundarios','2016-06-17',12),('Mi Sangre','2004-09-28',12);
-INSERT INTO cancion(titulo,publica) VALUES ('Como te atreves','2016-01-01'),('Besos en guerra','2017-11-03'),('La camisa negra','2004-09-28');
-INSERT INTO usuario(correo,url,fecha_alta) VALUES ('usuario1@ejemplo.com','https://ejemplo.com/usuario1','2026-01-10'),('usuario2@ejemplo.com','https://ejemplo.com/usuario2','2026-02-15');
-INSERT INTO registrado(cuota,fecha_fin) VALUES (15000.00,'2027-01-10'),(20000.00,'2027-06-30');
-INSERT INTO contiene(id_album,id_cancion) VALUES (1,1),(1,2),(2,3);
-INSERT INTO descarga(id_registrado,id_cancion,fecha,n_veces) VALUES (1,1,'2026-10-10',3),(1,2,'2026-10-11',1),(2,3,'2026-10-12',2);
-INSERT INTO stream(id_usuario,id_cancion,fecha) VALUES (1,1,'2026-10-13'),(1,2,'2026-10-14'),(2,3,'2026-10-15'),(2,1,'2026-10-15');
+-- tablas principales
 
--- Índice, vista y trigger
-CREATE INDEX idx_usuario_fecha_alta ON usuario(fecha_alta);
-CREATE OR REPLACE VIEW vista_albumes_canciones AS SELECT a.titulo AS album,c.titulo AS cancion FROM album a INNER JOIN contiene co ON a.id_album=co.id_album INNER JOIN cancion c ON co.id_cancion=c.id_cancion;
-DELIMITER //
-CREATE TRIGGER validar_descarga BEFORE INSERT ON descarga FOR EACH ROW BEGIN IF NEW.n_veces < 1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='El numero de descargas debe ser mayor que cero'; END IF; END //
-DELIMITER ;
+create table grupo (
+    id_grupo int auto_increment,
+    nombre varchar(100) not null,
+    componente varchar(255),
+    fecha_cre date,
+    constraint pk_grupo primary key (id_grupo)
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
--- Consultas solicitadas
-SELECT a.titulo AS album,c.titulo AS cancion FROM album a INNER JOIN contiene co ON a.id_album=co.id_album INNER JOIN cancion c ON co.id_cancion=c.id_cancion;
-SELECT a.titulo AS album,c.titulo AS cancion FROM album a INNER JOIN contiene co ON a.id_album=co.id_album INNER JOIN cancion c ON co.id_cancion=c.id_cancion WHERE a.titulo='Sobre el amor y sus efectos secundarios';
-SELECT a.titulo AS album,COUNT(co.id_cancion) AS total_canciones FROM album a INNER JOIN contiene co ON a.id_album=co.id_album GROUP BY a.id_album,a.titulo;
-SELECT titulo,publica FROM cancion WHERE publica>(SELECT MIN(publica) FROM cancion);
-SELECT titulo FROM cancion WHERE id_cancion IN (SELECT id_cancion FROM contiene WHERE id_album=1);
-SELECT titulo FROM cancion WHERE id_cancion IN (SELECT id_cancion FROM contiene WHERE id_album=(SELECT id_album FROM contiene GROUP BY id_album ORDER BY COUNT(id_cancion) DESC LIMIT 1));
-SELECT * FROM vista_albumes_canciones;
-SELECT * FROM vista_albumes_canciones WHERE album='Mi Sangre';
-SHOW INDEX FROM usuario;
-SHOW TRIGGERS FROM proyecto_bd_musical;
+create table cancion (
+    id_cancion int auto_increment,
+    titulo varchar(150) not null,
+    publica date,
+    constraint pk_cancion primary key (id_cancion)
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
--- UPDATE y DELETE ya probados. Descomentar solo para repetir en entorno de prueba.
--- UPDATE usuario SET fecha_alta='2026-01-15' WHERE id_usuario=1;
--- DELETE FROM stream WHERE id_usuario=2 AND id_cancion=3 AND fecha='2026-10-15';
--- Prueba del trigger: debe generar SQLSTATE 45000.
--- INSERT INTO descarga(id_registrado,id_cancion,fecha,n_veces) VALUES(1,2,'2026-10-18',0);
+create table usuario (
+    id_usuario int auto_increment,
+    correo varchar(150) not null,
+    url varchar(255),
+    fecha_alta date,
+    constraint pk_usuario primary key (id_usuario),
+    constraint uq_usuario_correo unique (correo)
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
--- Verificación de FK y CASCADE
-SELECT table_name AS tabla,constraint_name AS nombre_fk,column_name AS columna,referenced_table_name AS tabla_referenciada,referenced_column_name AS columna_referenciada FROM information_schema.key_column_usage WHERE table_schema='proyecto_bd_musical' AND referenced_table_name IS NOT NULL ORDER BY table_name,constraint_name;
-SELECT table_name AS tabla,constraint_name AS nombre_fk,update_rule AS al_actualizar,delete_rule AS al_eliminar FROM information_schema.referential_constraints WHERE constraint_schema='proyecto_bd_musical' ORDER BY table_name,constraint_name;
-SELECT table_name AS tabla,column_name AS columna_pk,ordinal_position AS posicion FROM information_schema.key_column_usage WHERE table_schema='proyecto_bd_musical' AND constraint_name='PRIMARY' ORDER BY table_name,ordinal_position;
+create table album (
+    id_album int auto_increment,
+    titulo varchar(150) not null,
+    fecha_pub date,
+    num_canciones int,
+    id_grupo int null,
+    constraint pk_album primary key (id_album),
+    index idx_album_id_grupo (id_grupo),
+    constraint fk_album_grupo
+        foreign key (id_grupo)
+        references grupo(id_grupo)
+        on update cascade
+        on delete cascade
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+create table registrado (
+    id_registrado int auto_increment,
+    cuota decimal(10,2),
+    fecha_fin date,
+    id_usuario int null,
+    constraint pk_registrado primary key (id_registrado),
+    index idx_registrado_id_usuario (id_usuario),
+    constraint fk_registrado_usuario
+        foreign key (id_usuario)
+        references usuario(id_usuario)
+        on update cascade
+        on delete cascade
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+-- tablas relacionadas
+
+create table contiene (
+    id_album int not null,
+    id_cancion int not null,
+    constraint pk_contiene primary key (id_album, id_cancion),
+
+    constraint fk_contiene_album
+        foreign key (id_album)
+        references album(id_album)
+        on update cascade
+        on delete cascade,
+
+    constraint fk_contiene_cancion
+        foreign key (id_cancion)
+        references cancion(id_cancion)
+        on update cascade
+        on delete cascade
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+create table descarga (
+    id_registrado int not null,
+    id_cancion int not null,
+    fecha date not null,
+    n_veces int not null default 1,
+
+    constraint pk_descarga
+        primary key (id_registrado, id_cancion, fecha),
+
+    constraint fk_descarga_registrado
+        foreign key (id_registrado)
+        references registrado(id_registrado)
+        on update cascade
+        on delete cascade,
+
+    constraint fk_descarga_cancion
+        foreign key (id_cancion)
+        references cancion(id_cancion)
+        on update cascade
+        on delete cascade
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+create table stream (
+    id_usuario int not null,
+    id_cancion int not null,
+    fecha date not null,
+
+    constraint pk_stream
+        primary key (id_usuario, id_cancion, fecha),
+
+    constraint fk_stream_usuario
+        foreign key (id_usuario)
+        references usuario(id_usuario)
+        on update cascade
+        on delete cascade,
+
+    constraint fk_stream_cancion
+        foreign key (id_cancion)
+        references cancion(id_cancion)
+        on update cascade
+        on delete cascade
+) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
+
+-- datos de prueba
+
+insert into grupo (nombre, componente, fecha_cre)
+values
+('Morat', 'Juan Pablo, Juan Pablo Isaza, Simón y Martín', '2011-01-01'),
+('Aterciopelados', 'Andrea Echeverri y Héctor Buitrago', '1990-01-01');
+
+insert into cancion (titulo, publica)
+values
+('Como te atreves', '2016-01-01'),
+('Besos en guerra', '2017-11-03'),
+('La camisa negra', '2004-09-28');
+
+insert into usuario (correo, url, fecha_alta)
+values
+('usuario1@ejemplo.com', 'https://ejemplo.com/usuario1', '2026-01-15'),
+('usuario2@ejemplo.com', 'https://ejemplo.com/usuario2', '2026-02-15');
+
+insert into album (titulo, fecha_pub, num_canciones, id_grupo)
+values
+('Sobre el amor y sus efectos secundarios', '2016-06-17', 12, 1),
+('Mi Sangre', '2004-09-28', 12, null);
+
+insert into registrado (cuota, fecha_fin, id_usuario)
+values
+(15000.00, '2027-01-10', 1),
+(20000.00, '2027-06-30', 2);
+
+insert into contiene (id_album, id_cancion)
+values
+(1, 1),
+(1, 2),
+(2, 3);
+
+insert into descarga (id_registrado, id_cancion, fecha, n_veces)
+values
+(1, 1, '2026-10-10', 3),
+(1, 2, '2026-10-11', 1),
+(2, 3, '2026-10-12', 2),
+(1, 1, '2026-10-17', 2);
+
+-- quedan los tres registros que permanecieron en stream
+-- despues de ejecutar el delete en Workbench
+
+insert into stream (id_usuario, id_cancion, fecha)
+values
+(1, 1, '2026-10-13'),
+(1, 2, '2016-10-14'),
+(2, 1, '2026-10-15');
+
+-- consultas de albumes y canciones
+
+select
+    a.titulo as album,
+    c.titulo as cancion
+from album as a
+inner join contiene as co
+    on a.id_album = co.id_album
+inner join cancion as c
+    on co.id_cancion = c.id_cancion;
+
+select
+    a.titulo as album,
+    c.titulo as cancion
+from album as a
+inner join contiene as co
+    on a.id_album = co.id_album
+inner join cancion as c
+    on co.id_cancion = c.id_cancion
+where a.titulo = 'Sobre el amor y sus efectos secundarios';
+
+select
+    a.titulo as album,
+    count(co.id_cancion) as total_canciones
+from album as a
+inner join contiene as co
+    on a.id_album = co.id_album
+group by a.id_album, a.titulo;
+
+-- subconsulta con min
+
+select titulo, publica
+from cancion
+where publica > (
+    select min(publica)
+    from cancion
+);
+
+-- subconsulta con in
+
+select titulo
+from cancion
+where id_cancion in (
+    select id_cancion
+    from contiene
+    where id_album = 1
+);
+
+-- subconsulta anidada
+
+select titulo
+from cancion
+where id_cancion in (
+    select id_cancion
+    from contiene
+    where id_album = (
+        select id_album
+        from contiene
+        group by id_album
+        order by count(id_cancion) desc
+        limit 1
+    )
+);
+
+-- vista
+
+create or replace view vista_albumes_canciones as
+select
+    a.titulo as album,
+    c.titulo as cancion
+from album as a
+inner join contiene as co
+    on a.id_album = co.id_album
+inner join cancion as c
+    on co.id_cancion = c.id_cancion;
+
+select * from vista_albumes_canciones;
+
+select *
+from vista_albumes_canciones
+where album = 'Mi Sangre';
+
+-- indice
+
+create index idx_usuario_fecha_alta
+on usuario (fecha_alta);
+
+show index from usuario;
+
+-- trigger
+
+delimiter //
+
+create trigger validar_descarga
+before insert on descarga
+for each row
+begin
+    if new.n_veces < 1 then
+        signal sqlstate '45000'
+        set message_text = 'El numero de descargas debe ser mayor que cero';
+    end if;
+end //
+
+delimiter ;
+
+show triggers from proyecto_bd_musical;
+
+-- consultas sobre las descargas
+
+select
+    c.titulo as cancion,
+    count(*) as registros_descarga,
+    sum(d.n_veces) as total_descargas
+from descarga as d
+inner join cancion as c
+    on d.id_cancion = c.id_cancion
+group by c.id_cancion, c.titulo;
+
+select titulo
+from cancion
+where id_cancion in (
+    select id_cancion
+    from descarga
+    group by id_cancion
+    having sum(n_veces) > (
+        select avg(n_veces)
+        from descarga
+    )
+);
+
+select
+    c.titulo as cancion,
+    sum(d.n_veces) as total_descargas,
+    (select avg(n_veces) from descarga) as promedio_por_registro
+from cancion as c
+inner join descarga as d
+    on c.id_cancion = d.id_cancion
+group by c.id_cancion, c.titulo;
+
+select titulo
+from cancion
+where id_cancion in (
+    select id_cancion
+    from descarga
+    where n_veces > (
+        select avg(n_veces)
+        from descarga
+    )
+);
+
+select titulo
+from cancion
+where id_cancion in (
+    select id_cancion
+    from contiene
+    where id_album = (
+        select id_album
+        from album
+        where titulo = 'Sobre el amor y sus efectos secundarios'
+    )
+);
+
+-- ver las claves foraneas
+
+select
+    table_name as tabla,
+    constraint_name as nombre_fk,
+    column_name as columna,
+    referenced_table_name as tabla_referenciada,
+    referenced_column_name as columna_referenciada
+from information_schema.key_column_usage
+where table_schema = 'proyecto_bd_musical'
+  and referenced_table_name is not null
+order by table_name, constraint_name;
+
+-- ver las reglas al actualizar y eliminar
+
+select
+    table_name as tabla,
+    constraint_name as nombre_fk,
+    update_rule as al_actualizar,
+    delete_rule as al_eliminar
+from information_schema.referential_constraints
+where constraint_schema = 'proyecto_bd_musical'
+order by table_name, constraint_name;
+
+-- ver las claves primarias
+
+select
+    table_name as tabla,
+    column_name as columna_pk,
+    ordinal_position as posicion
+from information_schema.key_column_usage
+where table_schema = 'proyecto_bd_musical'
+  and constraint_name = 'PRIMARY'
+order by table_name, ordinal_position;
+
+-- comprobar cuántos registros hay en cada tabla
+
+select 'grupo' as tabla, count(*) as registros from grupo
+union all
+select 'album', count(*) from album
+union all
+select 'cancion', count(*) from cancion
+union all
+select 'usuario', count(*) from usuario
+union all
+select 'registrado', count(*) from registrado
+union all
+select 'contiene', count(*) from contiene
+union all
+select 'descarga', count(*) from descarga
+union all
+select 'stream', count(*) from stream;
+
+-- prueba del trigger: debe generar un error, por eso queda comentada
+-- insert into descarga (id_registrado, id_cancion, fecha, n_veces)
+-- values (1, 2, '2026-10-19', 0);
